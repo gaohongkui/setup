@@ -34,15 +34,29 @@ main() (
   if [[ "$platform" == Darwin ]]; then
     use_brew_path
     if ! command -v gh >/dev/null; then
+      # The private repo's mirror settings are unavailable until gh can authenticate.
+      local bottle_mirror=https://mirrors.tuna.tsinghua.edu.cn/homebrew-bottles
+      export HOMEBREW_API_DOMAIN="${HOMEBREW_API_DOMAIN:-$bottle_mirror/api}"
+      export HOMEBREW_BOTTLE_DOMAIN="${HOMEBREW_BOTTLE_DOMAIN:-$bottle_mirror}"
+
       if ! command -v brew >/dev/null; then
         printf '%s\n' '正在安装 GitHub CLI 所需的 Homebrew。请按提示完成系统安装。'
+        local git_mirror=https://mirrors.tuna.tsinghua.edu.cn/git/homebrew/brew.git content_type
+        if [[ -z "${HOMEBREW_BREW_GIT_REMOTE:-}" ]] &&
+           content_type=$(curl -fsSL --connect-timeout 2 --max-time 4 -o /dev/null -w '%{content_type}' \
+             "$git_mirror/info/refs?service=git-upload-pack" 2>/dev/null) &&
+           [[ "$content_type" == application/x-git-upload-pack-advertisement* ]]; then
+          export HOMEBREW_BREW_GIT_REMOTE="$git_mirror"
+          printf '%s\n' '使用清华镜像下载 Homebrew 仓库。'
+        fi
         curl -fsSL --connect-timeout 10 --max-time 60 \
           https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh -o "$bootstrap_dir/brew.sh"
         [[ -s "$bootstrap_dir/brew.sh" ]] || fail 'Homebrew 安装脚本为空。'
         /bin/bash "$bootstrap_dir/brew.sh"
         use_brew_path
       fi
-      brew install gh
+      printf '%s\n' '正在安装 GitHub CLI，跳过本次自动更新。'
+      HOMEBREW_NO_AUTO_UPDATE=1 brew install gh
     fi
   elif ! command -v gh >/dev/null || ! command -v git >/dev/null; then
     command -v apt-get >/dev/null && command -v sudo >/dev/null ||
