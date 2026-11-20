@@ -56,7 +56,7 @@ main() (
         use_brew_path
       fi
       printf '%s\n' '正在安装 GitHub CLI，跳过本次自动更新。'
-      HOMEBREW_NO_AUTO_UPDATE=1 brew install gh
+      HOMEBREW_NO_AUTO_UPDATE=1 HOMEBREW_NO_ASK=1 brew install gh
     fi
   elif ! command -v gh >/dev/null || ! command -v git >/dev/null; then
     command -v apt-get >/dev/null && command -v sudo >/dev/null ||
